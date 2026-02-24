@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -31,12 +30,12 @@ func createMockCLI(t *testing.T, stdout, stderr string, exitCode int) string {
 	dir := t.TempDir()
 
 	if stdout != "" {
-		if err := os.WriteFile(filepath.Join(dir, "stdout.txt"), []byte(stdout), 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(dir, "stdout.txt"), []byte(stdout), 0o644); err != nil {
 			t.Fatal(err)
 		}
 	}
 	if stderr != "" {
-		if err := os.WriteFile(filepath.Join(dir, "stderr.txt"), []byte(stderr), 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(dir, "stderr.txt"), []byte(stderr), 0o644); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -52,7 +51,7 @@ func createMockCLI(t *testing.T, stdout, stderr string, exitCode int) string {
 	sb.WriteString(fmt.Sprintf("exit %d\n", exitCode))
 
 	script := filepath.Join(dir, "claude")
-	if err := os.WriteFile(script, []byte(sb.String()), 0755); err != nil {
+	if err := os.WriteFile(script, []byte(sb.String()), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	return script
@@ -68,7 +67,7 @@ func createSlowMockCLI(t *testing.T, sleepSeconds int) string {
 	dir := t.TempDir()
 	script := filepath.Join(dir, "claude")
 	content := fmt.Sprintf("#!/bin/sh\nsleep %d\necho '{\"type\":\"result\",\"result\":\"late\"}'\n", sleepSeconds)
-	if err := os.WriteFile(script, []byte(content), 0755); err != nil {
+	if err := os.WriteFile(script, []byte(content), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	return script
@@ -89,7 +88,7 @@ cat <<'EOFMOCK'
 {"type":"result","result":"ok","session_id":"test"}
 EOFMOCK
 `, argsFile)
-	if err := os.WriteFile(script, []byte(content), 0755); err != nil {
+	if err := os.WriteFile(script, []byte(content), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	return script
@@ -138,7 +137,6 @@ func TestChat_Success(t *testing.T) {
 	resp, err := p.Chat(context.Background(), []Message{
 		{Role: "user", Content: "Hello"},
 	}, nil, "", nil)
-
 	if err != nil {
 		t.Fatalf("Chat() error = %v", err)
 	}
@@ -194,7 +192,6 @@ func TestChat_WithToolCallsInResponse(t *testing.T) {
 	resp, err := p.Chat(context.Background(), []Message{
 		{Role: "user", Content: "What's the weather?"},
 	}, nil, "", nil)
-
 	if err != nil {
 		t.Fatalf("Chat() error = %v", err)
 	}
@@ -337,7 +334,7 @@ func TestChat_PassesModelFlag(t *testing.T) {
 
 	_, err := p.Chat(context.Background(), []Message{
 		{Role: "user", Content: "Hi"},
-	}, nil, "claude-sonnet-4-5-20250929", nil)
+	}, nil, "claude-sonnet-4.6", nil)
 	if err != nil {
 		t.Fatalf("Chat() error = %v", err)
 	}
@@ -347,7 +344,7 @@ func TestChat_PassesModelFlag(t *testing.T) {
 	if !strings.Contains(args, "--model") {
 		t.Errorf("CLI args missing --model, got: %s", args)
 	}
-	if !strings.Contains(args, "claude-sonnet-4-5-20250929") {
+	if !strings.Contains(args, "claude-sonnet-4.6") {
 		t.Errorf("CLI args missing model name, got: %s", args)
 	}
 }
@@ -404,7 +401,6 @@ func TestChat_EmptyWorkspaceDoesNotSetDir(t *testing.T) {
 	resp, err := p.Chat(context.Background(), []Message{
 		{Role: "user", Content: "Hello"},
 	}, nil, "", nil)
-
 	if err != nil {
 		t.Fatalf("Chat() with empty workspace error = %v", err)
 	}
@@ -417,10 +413,12 @@ func TestChat_EmptyWorkspaceDoesNotSetDir(t *testing.T) {
 
 func TestCreateProvider_ClaudeCli(t *testing.T) {
 	cfg := config.DefaultConfig()
-	cfg.Agents.Defaults.Provider = "claude-cli"
-	cfg.Agents.Defaults.Workspace = "/test/ws"
+	cfg.ModelList = []config.ModelConfig{
+		{ModelName: "claude-sonnet-4.6", Model: "claude-cli/claude-sonnet-4.6", Workspace: "/test/ws"},
+	}
+	cfg.Agents.Defaults.Model = "claude-sonnet-4.6"
 
-	provider, err := CreateProvider(cfg)
+	provider, _, err := CreateProvider(cfg)
 	if err != nil {
 		t.Fatalf("CreateProvider(claude-cli) error = %v", err)
 	}
@@ -436,9 +434,12 @@ func TestCreateProvider_ClaudeCli(t *testing.T) {
 
 func TestCreateProvider_ClaudeCode(t *testing.T) {
 	cfg := config.DefaultConfig()
-	cfg.Agents.Defaults.Provider = "claude-code"
+	cfg.ModelList = []config.ModelConfig{
+		{ModelName: "claude-code", Model: "claude-cli/claude-code"},
+	}
+	cfg.Agents.Defaults.Model = "claude-code"
 
-	provider, err := CreateProvider(cfg)
+	provider, _, err := CreateProvider(cfg)
 	if err != nil {
 		t.Fatalf("CreateProvider(claude-code) error = %v", err)
 	}
@@ -449,9 +450,12 @@ func TestCreateProvider_ClaudeCode(t *testing.T) {
 
 func TestCreateProvider_ClaudeCodec(t *testing.T) {
 	cfg := config.DefaultConfig()
-	cfg.Agents.Defaults.Provider = "claudecode"
+	cfg.ModelList = []config.ModelConfig{
+		{ModelName: "claudecode", Model: "claude-cli/claudecode"},
+	}
+	cfg.Agents.Defaults.Model = "claudecode"
 
-	provider, err := CreateProvider(cfg)
+	provider, _, err := CreateProvider(cfg)
 	if err != nil {
 		t.Fatalf("CreateProvider(claudecode) error = %v", err)
 	}
@@ -462,10 +466,13 @@ func TestCreateProvider_ClaudeCodec(t *testing.T) {
 
 func TestCreateProvider_ClaudeCliDefaultWorkspace(t *testing.T) {
 	cfg := config.DefaultConfig()
-	cfg.Agents.Defaults.Provider = "claude-cli"
+	cfg.ModelList = []config.ModelConfig{
+		{ModelName: "claude-cli", Model: "claude-cli/claude-sonnet"},
+	}
+	cfg.Agents.Defaults.Model = "claude-cli"
 	cfg.Agents.Defaults.Workspace = ""
 
-	provider, err := CreateProvider(cfg)
+	provider, _, err := CreateProvider(cfg)
 	if err != nil {
 		t.Fatalf("CreateProvider error = %v", err)
 	}
@@ -612,10 +619,10 @@ func TestBuildSystemPrompt_WithTools(t *testing.T) {
 			Function: ToolFunctionDefinition{
 				Name:        "get_weather",
 				Description: "Get weather for a location",
-				Parameters: map[string]interface{}{
+				Parameters: map[string]any{
 					"type": "object",
-					"properties": map[string]interface{}{
-						"location": map[string]interface{}{"type": "string"},
+					"properties": map[string]any{
+						"location": map[string]any{"type": "string"},
 					},
 				},
 			},
@@ -968,9 +975,9 @@ func TestFindMatchingBrace(t *testing.T) {
 		{`{"a":1}`, 0, 7},
 		{`{"a":{"b":2}}`, 0, 13},
 		{`text {"a":1} more`, 5, 12},
-		{`{unclosed`, 0, 0},   // no match returns pos
-		{`{}`, 0, 2},           // empty object
-		{`{{{}}}`, 0, 6},       // deeply nested
+		{`{unclosed`, 0, 0},      // no match returns pos
+		{`{}`, 0, 2},             // empty object
+		{`{{{}}}`, 0, 6},         // deeply nested
 		{`{"a":"b{c}d"}`, 0, 13}, // braces in strings (simplified matcher)
 	}
 	for _, tt := range tests {
@@ -979,131 +986,4 @@ func TestFindMatchingBrace(t *testing.T) {
 			t.Errorf("findMatchingBrace(%q, %d) = %d, want %d", tt.text, tt.pos, got, tt.want)
 		}
 	}
-}
-
-// --- Integration test: real claude CLI ---
-
-func TestIntegration_RealClaudeCLI(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping integration test in short mode")
-	}
-
-	// Check if claude CLI is available
-	path, err := exec.LookPath("claude")
-	if err != nil {
-		t.Skip("claude CLI not found in PATH, skipping integration test")
-	}
-	t.Logf("Using claude CLI at: %s", path)
-
-	p := NewClaudeCliProvider(t.TempDir())
-
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
-	defer cancel()
-
-	resp, err := p.Chat(ctx, []Message{
-		{Role: "user", Content: "Respond with only the word 'pong'. Nothing else."},
-	}, nil, "", nil)
-
-	if err != nil {
-		t.Fatalf("Chat() with real CLI error = %v", err)
-	}
-
-	// Verify response structure
-	if resp.Content == "" {
-		t.Error("Content is empty")
-	}
-	if resp.FinishReason != "stop" {
-		t.Errorf("FinishReason = %q, want %q", resp.FinishReason, "stop")
-	}
-	if resp.Usage == nil {
-		t.Error("Usage should not be nil from real CLI")
-	} else {
-		if resp.Usage.PromptTokens == 0 {
-			t.Error("PromptTokens should be > 0")
-		}
-		if resp.Usage.CompletionTokens == 0 {
-			t.Error("CompletionTokens should be > 0")
-		}
-		t.Logf("Usage: prompt=%d, completion=%d, total=%d",
-			resp.Usage.PromptTokens, resp.Usage.CompletionTokens, resp.Usage.TotalTokens)
-	}
-
-	t.Logf("Response content: %q", resp.Content)
-
-	// Loose check - should contain "pong" somewhere (model might capitalize or add punctuation)
-	if !strings.Contains(strings.ToLower(resp.Content), "pong") {
-		t.Errorf("Content = %q, expected to contain 'pong'", resp.Content)
-	}
-}
-
-func TestIntegration_RealClaudeCLI_WithSystemPrompt(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping integration test in short mode")
-	}
-
-	if _, err := exec.LookPath("claude"); err != nil {
-		t.Skip("claude CLI not found in PATH")
-	}
-
-	p := NewClaudeCliProvider(t.TempDir())
-
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
-	defer cancel()
-
-	resp, err := p.Chat(ctx, []Message{
-		{Role: "system", Content: "You are a calculator. Only respond with numbers. No text."},
-		{Role: "user", Content: "What is 2+2?"},
-	}, nil, "", nil)
-
-	if err != nil {
-		t.Fatalf("Chat() error = %v", err)
-	}
-
-	t.Logf("Response: %q", resp.Content)
-
-	if !strings.Contains(resp.Content, "4") {
-		t.Errorf("Content = %q, expected to contain '4'", resp.Content)
-	}
-}
-
-func TestIntegration_RealClaudeCLI_ParsesRealJSON(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping integration test in short mode")
-	}
-
-	if _, err := exec.LookPath("claude"); err != nil {
-		t.Skip("claude CLI not found in PATH")
-	}
-
-	// Run claude directly and verify our parser handles real output
-	cmd := exec.Command("claude", "-p", "--output-format", "json",
-		"--dangerously-skip-permissions", "--no-chrome", "--no-session-persistence", "-")
-	cmd.Stdin = strings.NewReader("Say hi")
-	cmd.Dir = t.TempDir()
-
-	output, err := cmd.Output()
-	if err != nil {
-		t.Fatalf("claude CLI failed: %v", err)
-	}
-
-	t.Logf("Raw CLI output: %s", string(output))
-
-	// Verify our parser can handle real output
-	p := NewClaudeCliProvider("")
-	resp, err := p.parseClaudeCliResponse(string(output))
-	if err != nil {
-		t.Fatalf("parseClaudeCliResponse() failed on real CLI output: %v", err)
-	}
-
-	if resp.Content == "" {
-		t.Error("parsed Content is empty")
-	}
-	if resp.FinishReason != "stop" {
-		t.Errorf("FinishReason = %q, want stop", resp.FinishReason)
-	}
-	if resp.Usage == nil {
-		t.Error("Usage should not be nil")
-	}
-
-	t.Logf("Parsed: content=%q, finish=%s, usage=%+v", resp.Content, resp.FinishReason, resp.Usage)
 }

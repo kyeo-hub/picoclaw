@@ -1,4 +1,4 @@
-	package tools
+package tools
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/sipeed/picoclaw/pkg/bus"
+	"github.com/sipeed/picoclaw/pkg/config"
 	"github.com/sipeed/picoclaw/pkg/cron"
 	"github.com/sipeed/picoclaw/pkg/utils"
 )
@@ -28,12 +29,18 @@ type CronTool struct {
 }
 
 // NewCronTool creates a new CronTool
-func NewCronTool(cronService *cron.CronService, executor JobExecutor, msgBus *bus.MessageBus, workspace string) *CronTool {
+// execTimeout: 0 means no timeout, >0 sets the timeout duration
+func NewCronTool(
+	cronService *cron.CronService, executor JobExecutor, msgBus *bus.MessageBus, workspace string, restrict bool,
+	execTimeout time.Duration, config *config.Config,
+) *CronTool {
+	execTool := NewExecToolWithConfig(workspace, restrict, config)
+	execTool.SetTimeout(execTimeout)
 	return &CronTool{
 		cronService: cronService,
 		executor:    executor,
 		msgBus:      msgBus,
-		execTool:    NewExecTool(workspace, false),
+		execTool:    execTool,
 	}
 }
 
@@ -48,42 +55,42 @@ func (t *CronTool) Description() string {
 }
 
 // Parameters returns the tool parameters schema
-func (t *CronTool) Parameters() map[string]interface{} {
-	return map[string]interface{}{
+func (t *CronTool) Parameters() map[string]any {
+	return map[string]any{
 		"type": "object",
-		"properties": map[string]interface{}{
-			"action": map[string]interface{}{
+		"properties": map[string]any{
+			"action": map[string]any{
 				"type":        "string",
 				"enum":        []string{"add", "list", "remove", "enable", "disable"},
 				"description": "Action to perform. Use 'add' when user wants to schedule a reminder or task.",
 			},
-			"message": map[string]interface{}{
+			"message": map[string]any{
 				"type":        "string",
 				"description": "The reminder/task message to display when triggered. If 'command' is used, this describes what the command does.",
 			},
-			"command": map[string]interface{}{
+			"command": map[string]any{
 				"type":        "string",
 				"description": "Optional: Shell command to execute directly (e.g., 'df -h'). If set, the agent will run this command and report output instead of just showing the message. 'deliver' will be forced to false for commands.",
 			},
-			"at_seconds": map[string]interface{}{
+			"at_seconds": map[string]any{
 				"type":        "integer",
 				"description": "One-time reminder: seconds from now when to trigger (e.g., 600 for 10 minutes later). Use this for one-time reminders like 'remind me in 10 minutes'.",
 			},
-			"every_seconds": map[string]interface{}{
+			"every_seconds": map[string]any{
 				"type":        "integer",
 				"description": "Recurring interval in seconds (e.g., 3600 for every hour). Use this ONLY for recurring tasks like 'every 2 hours' or 'daily reminder'.",
 			},
-			"cron_expr": map[string]interface{}{
+			"cron_expr": map[string]any{
 				"type":        "string",
 				"description": "Cron expression for complex recurring schedules (e.g., '0 9 * * *' for daily at 9am). Use this for complex recurring schedules.",
 			},
-			"job_id": map[string]interface{}{
+			"job_id": map[string]any{
 				"type":        "string",
 				"description": "Job ID (for remove/enable/disable)",
 			},
-			"deliver": map[string]interface{}{
+			"deliver": map[string]any{
 				"type":        "boolean",
-				"description": "If true, send message directly to channel. If false, let agent process the message (for complex tasks). Default: true",
+				"description": "If true, send message directly to channel. If false, let agent process message (for complex tasks). Default: true",
 			},
 		},
 		"required": []string{"action"},
@@ -98,11 +105,11 @@ func (t *CronTool) SetContext(channel, chatID string) {
 	t.chatID = chatID
 }
 
-// Execute runs the tool with given arguments
-func (t *CronTool) Execute(ctx context.Context, args map[string]interface{}) (string, error) {
+// Execute runs the tool with the given arguments
+func (t *CronTool) Execute(ctx context.Context, args map[string]any) *ToolResult {
 	action, ok := args["action"].(string)
 	if !ok {
-		return "", fmt.Errorf("action is required")
+		return ErrorResult("action is required")
 	}
 
 	switch action {
@@ -117,23 +124,23 @@ func (t *CronTool) Execute(ctx context.Context, args map[string]interface{}) (st
 	case "disable":
 		return t.enableJob(args, false)
 	default:
-		return "", fmt.Errorf("unknown action: %s", action)
+		return ErrorResult(fmt.Sprintf("unknown action: %s", action))
 	}
 }
 
-func (t *CronTool) addJob(args map[string]interface{}) (string, error) {
+func (t *CronTool) addJob(args map[string]any) *ToolResult {
 	t.mu.RLock()
 	channel := t.channel
 	chatID := t.chatID
 	t.mu.RUnlock()
 
 	if channel == "" || chatID == "" {
-		return "Error: no session context (channel/chat_id not set). Use this tool in an active conversation.", nil
+		return ErrorResult("no session context (channel/chat_id not set). Use this tool in an active conversation.")
 	}
 
 	message, ok := args["message"].(string)
 	if !ok || message == "" {
-		return "Error: message is required for add", nil
+		return ErrorResult("message is required for add")
 	}
 
 	var schedule cron.CronSchedule
@@ -162,7 +169,7 @@ func (t *CronTool) addJob(args map[string]interface{}) (string, error) {
 			Expr: cronExpr,
 		}
 	} else {
-		return "Error: one of at_seconds, every_seconds, or cron_expr is required", nil
+		return ErrorResult("one of at_seconds, every_seconds, or cron_expr is required")
 	}
 
 	// Read deliver parameter, default to true
@@ -192,23 +199,23 @@ func (t *CronTool) addJob(args map[string]interface{}) (string, error) {
 		chatID,
 	)
 	if err != nil {
-		return fmt.Sprintf("Error adding job: %v", err), nil
+		return ErrorResult(fmt.Sprintf("Error adding job: %v", err))
 	}
-	
+
 	if command != "" {
 		job.Payload.Command = command
 		// Need to save the updated payload
 		t.cronService.UpdateJob(job)
 	}
 
-	return fmt.Sprintf("Created job '%s' (id: %s)", job.Name, job.ID), nil
+	return SilentResult(fmt.Sprintf("Cron job added: %s (id: %s)", job.Name, job.ID))
 }
 
-func (t *CronTool) listJobs() (string, error) {
+func (t *CronTool) listJobs() *ToolResult {
 	jobs := t.cronService.ListJobs(false)
 
 	if len(jobs) == 0 {
-		return "No scheduled jobs.", nil
+		return SilentResult("No scheduled jobs")
 	}
 
 	result := "Scheduled jobs:\n"
@@ -226,37 +233,37 @@ func (t *CronTool) listJobs() (string, error) {
 		result += fmt.Sprintf("- %s (id: %s, %s)\n", j.Name, j.ID, scheduleInfo)
 	}
 
-	return result, nil
+	return SilentResult(result)
 }
 
-func (t *CronTool) removeJob(args map[string]interface{}) (string, error) {
+func (t *CronTool) removeJob(args map[string]any) *ToolResult {
 	jobID, ok := args["job_id"].(string)
 	if !ok || jobID == "" {
-		return "Error: job_id is required for remove", nil
+		return ErrorResult("job_id is required for remove")
 	}
 
 	if t.cronService.RemoveJob(jobID) {
-		return fmt.Sprintf("Removed job %s", jobID), nil
+		return SilentResult(fmt.Sprintf("Cron job removed: %s", jobID))
 	}
-	return fmt.Sprintf("Job %s not found", jobID), nil
+	return ErrorResult(fmt.Sprintf("Job %s not found", jobID))
 }
 
-func (t *CronTool) enableJob(args map[string]interface{}, enable bool) (string, error) {
+func (t *CronTool) enableJob(args map[string]any, enable bool) *ToolResult {
 	jobID, ok := args["job_id"].(string)
 	if !ok || jobID == "" {
-		return "Error: job_id is required for enable/disable", nil
+		return ErrorResult("job_id is required for enable/disable")
 	}
 
 	job := t.cronService.EnableJob(jobID, enable)
 	if job == nil {
-		return fmt.Sprintf("Job %s not found", jobID), nil
+		return ErrorResult(fmt.Sprintf("Job %s not found", jobID))
 	}
 
 	status := "enabled"
 	if !enable {
 		status = "disabled"
 	}
-	return fmt.Sprintf("Job '%s' %s", job.Name, status), nil
+	return SilentResult(fmt.Sprintf("Cron job '%s' %s", job.Name, status))
 }
 
 // ExecuteJob executes a cron job through the agent
@@ -275,15 +282,16 @@ func (t *CronTool) ExecuteJob(ctx context.Context, job *cron.CronJob) string {
 
 	// Execute command if present
 	if job.Payload.Command != "" {
-		args := map[string]interface{}{
+		args := map[string]any{
 			"command": job.Payload.Command,
 		}
 
-		output, err := t.execTool.Execute(ctx, args)
-		if err != nil {
-			output = fmt.Sprintf("Error executing scheduled command: %v", err)
+		result := t.execTool.Execute(ctx, args)
+		var output string
+		if result.IsError {
+			output = fmt.Sprintf("Error executing scheduled command: %s", result.ForLLM)
 		} else {
-			output = fmt.Sprintf("Scheduled command '%s' executed:\n%s", job.Payload.Command, output)
+			output = fmt.Sprintf("Scheduled command '%s' executed:\n%s", job.Payload.Command, result.ForLLM)
 		}
 
 		t.msgBus.PublishOutbound(bus.OutboundMessage{
@@ -307,7 +315,7 @@ func (t *CronTool) ExecuteJob(ctx context.Context, job *cron.CronJob) string {
 	// For deliver=false, process through agent (for complex tasks)
 	sessionKey := fmt.Sprintf("cron-%s", job.ID)
 
-	// Call agent with the job's message
+	// Call agent with job's message
 	response, err := t.executor.ProcessDirectWithChannel(
 		ctx,
 		job.Payload.Message,
@@ -315,7 +323,6 @@ func (t *CronTool) ExecuteJob(ctx context.Context, job *cron.CronJob) string {
 		channel,
 		chatID,
 	)
-
 	if err != nil {
 		return fmt.Sprintf("Error: %v", err)
 	}
