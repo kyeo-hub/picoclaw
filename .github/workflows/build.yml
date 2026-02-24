@@ -2,11 +2,13 @@ name: Build and Release
 
 on:
   push:
-    branches: [ "main" ]
+    branches:
+      - main
     tags:
       - 'v*'
   pull_request:
-    branches: [ "main" ]
+    branches:
+      - main
 
 jobs:
   build:
@@ -21,6 +23,10 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
+          cache: true
+
+      - name: Install dependencies
+        run: go mod download
 
       - name: Build for all platforms
         run: make build-all
@@ -28,7 +34,7 @@ jobs:
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: picoclaw-builds
+          name: picoclaw-builds-${{ github.sha }}
           path: build/picoclaw-*
           retention-days: 30
 
@@ -48,6 +54,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
+          cache: true
 
       - name: Build for all platforms
         run: make build-all
@@ -59,7 +66,7 @@ jobs:
           cat checksums.txt
 
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: |
             build/picoclaw-*
