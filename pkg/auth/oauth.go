@@ -34,6 +34,15 @@ func OpenAIOAuthConfig() OAuthProviderConfig {
 	}
 }
 
+func QwenOAuthConfig() OAuthProviderConfig {
+	return OAuthProviderConfig{
+		Issuer:   "https://oauth.aliyun.com",
+		ClientID: "qwen_cli_app",
+		Scopes:   "openid profile email offline_access",
+		Port:     1456,
+	}
+}
+
 func generateState() (string, error) {
 	buf := make([]byte, 32)
 	if _, err := rand.Read(buf); err != nil {

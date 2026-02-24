@@ -829,13 +829,16 @@ func authHelp() {
 	fmt.Println("  status      Show current auth status")
 	fmt.Println()
 	fmt.Println("Login options:")
-	fmt.Println("  --provider <name>    Provider to login with (openai, anthropic)")
+	fmt.Println("  --provider <name>    Provider to login with (openai, anthropic, qwen)")
 	fmt.Println("  --device-code        Use device code flow (for headless environments)")
+	fmt.Println("  --qr-code            Use QR code scan (for qwen)")
 	fmt.Println()
 	fmt.Println("Examples:")
 	fmt.Println("  picoclaw auth login --provider openai")
 	fmt.Println("  picoclaw auth login --provider openai --device-code")
 	fmt.Println("  picoclaw auth login --provider anthropic")
+	fmt.Println("  picoclaw auth login --provider qwen")
+	fmt.Println("  picoclaw auth login --provider qwen --qr-code")
 	fmt.Println("  picoclaw auth logout --provider openai")
 	fmt.Println("  picoclaw auth status")
 }
@@ -843,6 +846,7 @@ func authHelp() {
 func authLoginCmd() {
 	provider := ""
 	useDeviceCode := false
+	useQRCode := false
 
 	args := os.Args[3:]
 	for i := 0; i < len(args); i++ {
@@ -854,12 +858,14 @@ func authLoginCmd() {
 			}
 		case "--device-code":
 			useDeviceCode = true
+		case "--qr-code":
+			useQRCode = true
 		}
 	}
 
 	if provider == "" {
 		fmt.Println("Error: --provider is required")
-		fmt.Println("Supported providers: openai, anthropic")
+		fmt.Println("Supported providers: openai, anthropic, qwen")
 		return
 	}
 
@@ -868,9 +874,11 @@ func authLoginCmd() {
 		authLoginOpenAI(useDeviceCode)
 	case "anthropic":
 		authLoginPasteToken(provider)
+	case "qwen", "dashscope", "aliyun":
+		authLoginQwen(useQRCode)
 	default:
 		fmt.Printf("Unsupported provider: %s\n", provider)
-		fmt.Println("Supported providers: openai, anthropic")
+		fmt.Println("Supported providers: openai, anthropic, qwen")
 	}
 }
 
@@ -907,6 +915,46 @@ func authLoginOpenAI(useDeviceCode bool) {
 	fmt.Println("Login successful!")
 	if cred.AccountID != "" {
 		fmt.Printf("Account: %s\n", cred.AccountID)
+	}
+}
+
+func authLoginQwen(useQRCode bool) {
+	var cred *auth.AuthCredential
+	var err error
+
+	if useQRCode {
+		fmt.Println("开始 Qwen OAuth 扫码登录...")
+		cred, err = auth.LoginQwenQRCode()
+	} else {
+		fmt.Println("Unsupported Qwen login method. Please use --qr-code for QR code scan.")
+		fmt.Println("Usage: picoclaw auth login --provider qwen --qr-code")
+		return
+	}
+
+	if err != nil {
+		fmt.Printf("Login failed: %v\n", err)
+		os.Exit(1)
+	}
+
+	if err := auth.SetCredential("qwen", cred); err != nil {
+		fmt.Printf("Failed to save credentials: %v\n", err)
+		os.Exit(1)
+	}
+
+	appCfg, err := loadConfig()
+	if err == nil {
+		appCfg.Providers.Qwen.AuthMethod = "oauth"
+		if err := config.SaveConfig(getConfigPath(), appCfg); err != nil {
+			fmt.Printf("Warning: could not update config: %v\n", err)
+		}
+	}
+
+	fmt.Println("✅ Qwen 登录成功！")
+	if cred.AccountID != "" {
+		fmt.Printf("账户 ID: %s\n", cred.AccountID)
+	}
+	if !cred.ExpiresAt.IsZero() {
+		fmt.Printf("令牌过期时间：%s\n", cred.ExpiresAt.Format("2006-01-02 15:04:05"))
 	}
 }
 
@@ -965,6 +1013,8 @@ func authLogoutCmd() {
 				appCfg.Providers.OpenAI.AuthMethod = ""
 			case "anthropic":
 				appCfg.Providers.Anthropic.AuthMethod = ""
+			case "qwen", "dashscope", "aliyun":
+				appCfg.Providers.Qwen.AuthMethod = ""
 			}
 			config.SaveConfig(getConfigPath(), appCfg)
 		}
@@ -980,6 +1030,7 @@ func authLogoutCmd() {
 		if err == nil {
 			appCfg.Providers.OpenAI.AuthMethod = ""
 			appCfg.Providers.Anthropic.AuthMethod = ""
+			appCfg.Providers.Qwen.AuthMethod = ""
 			config.SaveConfig(getConfigPath(), appCfg)
 		}
 

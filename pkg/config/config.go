@@ -143,6 +143,7 @@ type ProvidersConfig struct {
 	Gemini     ProviderConfig `json:"gemini"`
 	Nvidia     ProviderConfig `json:"nvidia"`
 	Moonshot   ProviderConfig `json:"moonshot"`
+	Qwen       ProviderConfig `json:"qwen"`
 }
 
 type ProviderConfig struct {

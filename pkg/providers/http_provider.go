@@ -295,6 +295,17 @@ func CreateProvider(cfg *config.Config) (LLMProvider, error) {
 				workspace = "."
 			}
 			return NewClaudeCliProvider(workspace), nil
+		case "qwen", "dashscope", "aliyun":
+			if cfg.Providers.Qwen.APIKey != "" || cfg.Providers.Qwen.AuthMethod != "" {
+				if cfg.Providers.Qwen.AuthMethod == "oauth" || cfg.Providers.Qwen.AuthMethod == "token" {
+					return createQwenAuthProvider()
+				}
+				apiKey = cfg.Providers.Qwen.APIKey
+				apiBase = cfg.Providers.Qwen.APIBase
+				if apiBase == "" {
+					apiBase = "https://dashscope.aliyuncs.com/compatible-mode/v1"
+				}
+			}
 		}
 	}
 
@@ -354,6 +365,17 @@ func CreateProvider(cfg *config.Config) (LLMProvider, error) {
 			proxy = cfg.Providers.Zhipu.Proxy
 			if apiBase == "" {
 				apiBase = "https://open.bigmodel.cn/api/paas/v4"
+			}
+
+		case (strings.Contains(lowerModel, "qwen") || strings.Contains(lowerModel, "dashscope") || strings.HasPrefix(model, "qwen/") || strings.HasPrefix(model, "dashscope/")) && (cfg.Providers.Qwen.APIKey != "" || cfg.Providers.Qwen.AuthMethod != ""):
+			if cfg.Providers.Qwen.AuthMethod == "oauth" || cfg.Providers.Qwen.AuthMethod == "token" {
+				return createQwenAuthProvider()
+			}
+			apiKey = cfg.Providers.Qwen.APIKey
+			apiBase = cfg.Providers.Qwen.APIBase
+			proxy = cfg.Providers.Qwen.Proxy
+			if apiBase == "" {
+				apiBase = "https://dashscope.aliyuncs.com/compatible-mode/v1"
 			}
 
 		case (strings.Contains(lowerModel, "groq") || strings.HasPrefix(model, "groq/")) && cfg.Providers.Groq.APIKey != "":
