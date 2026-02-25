@@ -46,6 +46,12 @@ func agentCmd() {
 				modelOverride = args[i+1]
 				i++
 			}
+		default:
+			// Treat bare positional arguments (not starting with "-") as model name override.
+			// e.g. `picoclaw agent qwen` sets model to "qwen"
+			if !strings.HasPrefix(args[i], "-") && modelOverride == "" {
+				modelOverride = args[i]
+			}
 		}
 	}
 

@@ -53,7 +53,7 @@ func ExtractProtocol(model string) (protocol, modelID string) {
 
 // CreateProviderFromConfig creates a provider based on the ModelConfig.
 // It uses the protocol prefix in the Model field to determine which provider to create.
-// Supported protocols: openai, anthropic, antigravity, claude-cli, codex-cli, github-copilot
+// Supported protocols: openai, anthropic, antigravity, claude-cli, codex-cli, github-copilot, qwen-oauth
 // Returns the provider, the model ID (without protocol prefix), and any error.
 func CreateProviderFromConfig(cfg *config.ModelConfig) (LLMProvider, string, error) {
 	if cfg == nil {
@@ -88,7 +88,7 @@ func CreateProviderFromConfig(cfg *config.ModelConfig) (LLMProvider, string, err
 
 	case "openrouter", "groq", "zhipu", "gemini", "nvidia",
 		"ollama", "moonshot", "shengsuanyun", "deepseek", "cerebras",
-		"volcengine", "vllm", "qwen", "mistral":
+		"volcengine", "vllm", "mistral":
 		// All other OpenAI-compatible HTTP providers
 		if cfg.APIKey == "" && cfg.APIBase == "" {
 			return nil, "", fmt.Errorf("api_key or api_base is required for HTTP-based protocol %q", protocol)
@@ -150,6 +150,26 @@ func CreateProviderFromConfig(cfg *config.ModelConfig) (LLMProvider, string, err
 		}
 		return provider, modelID, nil
 
+	case "qwen-oauth", "qwenoauth", "qwen-portal":
+		// Qwen via Alibaba Cloud OAuth (QR-code scan login, no API key needed)
+		// Uses https://portal.qwen.ai/v1 endpoint
+		provider, err := createQwenOAuthProvider()
+		if err != nil {
+			return nil, "", err
+		}
+		return provider, modelID, nil
+
+	case "qwen":
+		// Qwen via DashScope API Key (OpenAI-compatible HTTP API)
+		if cfg.APIKey == "" && cfg.APIBase == "" {
+			return nil, "", fmt.Errorf("api_key or api_base is required for qwen protocol (model: %s)", cfg.Model)
+		}
+		apiBase := cfg.APIBase
+		if apiBase == "" {
+			apiBase = getDefaultAPIBase(protocol)
+		}
+		return NewHTTPProviderWithMaxTokensField(cfg.APIKey, apiBase, cfg.Proxy, cfg.MaxTokensField), modelID, nil
+
 	default:
 		return nil, "", fmt.Errorf("unknown protocol %q in model %q", protocol, cfg.Model)
 	}
@@ -182,7 +202,7 @@ func getDefaultAPIBase(protocol string) string {
 		return "https://api.cerebras.ai/v1"
 	case "volcengine":
 		return "https://ark.cn-beijing.volces.com/api/v3"
-	case "qwen":
+	case "qwen", "qwen-oauth":
 		return "https://dashscope.aliyuncs.com/compatible-mode/v1"
 	case "vllm":
 		return "http://localhost:8000/v1"

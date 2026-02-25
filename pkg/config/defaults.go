@@ -162,10 +162,40 @@ func DefaultConfig() *Config {
 				APIKey:    "",
 			},
 
-			// Qwen (通义千问) - https://dashscope.console.aliyun.com/apiKey
+			// Qwen (通义千问) - OAuth 扫码登录
+			// Login: picoclaw auth login --provider qwen
+			// API documentation: https://help.aliyun.com/zh/model-studio/
+			// Models: https://chat.qwen.ai
+			{
+				ModelName:  "qwen-coder",
+				Model:      "qwen-portal/coder-model",
+				APIBase:    "https://portal.qwen.ai/v1",
+				APIKey:     "qwen-oauth", // Special marker: use OAuth token from auth store
+				AuthMethod: "oauth",
+			},
+			{
+				ModelName:  "qwen-vision",
+				Model:      "qwen-portal/vision-model",
+				APIBase:    "https://portal.qwen.ai/v1",
+				APIKey:     "qwen-oauth",
+				AuthMethod: "oauth",
+			},
+			// Qwen with API Key (alternative) - DashScope API
 			{
 				ModelName: "qwen-plus",
 				Model:     "qwen/qwen-plus",
+				APIBase:   "https://dashscope.aliyuncs.com/compatible-mode/v1",
+				APIKey:    "",
+			},
+			{
+				ModelName: "qwen3-max",
+				Model:     "qwen/qwen3-max",
+				APIBase:   "https://dashscope.aliyuncs.com/compatible-mode/v1",
+				APIKey:    "",
+			},
+			{
+				ModelName: "qwen3-flash",
+				Model:     "qwen/qwen3-flash",
 				APIBase:   "https://dashscope.aliyuncs.com/compatible-mode/v1",
 				APIKey:    "",
 			},

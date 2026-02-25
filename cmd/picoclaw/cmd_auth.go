@@ -17,7 +17,7 @@ import (
 	"github.com/sipeed/picoclaw/pkg/providers"
 )
 
-const supportedProvidersMsg = "Supported providers: openai, anthropic, google-antigravity"
+const supportedProvidersMsg = "Supported providers: openai, anthropic, google-antigravity, qwen"
 
 func authCmd() {
 	if len(os.Args) < 3 {
@@ -48,7 +48,7 @@ func authHelp() {
 	fmt.Println("  models      List available Antigravity models")
 	fmt.Println()
 	fmt.Println("Login options:")
-	fmt.Println("  --provider <name>    Provider to login with (openai, anthropic, google-antigravity)")
+	fmt.Println("  --provider <name>    Provider to login with (openai, anthropic, google-antigravity, qwen)")
 	fmt.Println("  --device-code        Use device code flow (for headless environments)")
 	fmt.Println()
 	fmt.Println("Examples:")
@@ -56,6 +56,7 @@ func authHelp() {
 	fmt.Println("  picoclaw auth login --provider openai --device-code")
 	fmt.Println("  picoclaw auth login --provider anthropic")
 	fmt.Println("  picoclaw auth login --provider google-antigravity")
+	fmt.Println("  picoclaw auth login --provider qwen")
 	fmt.Println("  picoclaw auth models")
 	fmt.Println("  picoclaw auth logout --provider openai")
 	fmt.Println("  picoclaw auth status")
@@ -91,6 +92,8 @@ func authLoginCmd() {
 		authLoginPasteToken(provider)
 	case "google-antigravity", "antigravity":
 		authLoginGoogleAntigravity()
+	case "qwen":
+		authLoginQwen()
 	default:
 		fmt.Printf("Unsupported provider: %s\n", provider)
 		fmt.Println(supportedProvidersMsg)
@@ -356,10 +359,14 @@ func authLogoutCmd() {
 					if isAnthropicModel(appCfg.ModelList[i].Model) {
 						appCfg.ModelList[i].AuthMethod = ""
 					}
-				case "google-antigravity", "antigravity":
-					if isAntigravityModel(appCfg.ModelList[i].Model) {
-						appCfg.ModelList[i].AuthMethod = ""
-					}
+			case "google-antigravity", "antigravity":
+				if isAntigravityModel(appCfg.ModelList[i].Model) {
+					appCfg.ModelList[i].AuthMethod = ""
+				}
+			case "qwen":
+				if isQwenModel(appCfg.ModelList[i].Model) {
+					appCfg.ModelList[i].AuthMethod = ""
+				}
 				}
 			}
 			// Clear AuthMethod in Providers (legacy)
@@ -505,8 +512,67 @@ func isOpenAIModel(model string) bool {
 		strings.HasPrefix(model, "openai/")
 }
 
+// isQwenModel checks if a model string belongs to the qwen provider
+func isQwenModel(model string) bool {
+	return model == "qwen" ||
+		model == "qwen-oauth" ||
+		strings.HasPrefix(model, "qwen/") ||
+		strings.HasPrefix(model, "qwen-oauth/")
+}
+
 // isAnthropicModel checks if a model string belongs to anthropic provider
 func isAnthropicModel(model string) bool {
 	return model == "anthropic" ||
 		strings.HasPrefix(model, "anthropic/")
+}
+
+// authLoginQwen performs the Qwen Portal OAuth device-code (QR scan) login flow.
+func authLoginQwen() {
+	cred, err := auth.LoginQwenQRCode()
+	if err != nil {
+		fmt.Printf("Login failed: %v\n", err)
+		os.Exit(1)
+	}
+
+	if err = auth.SetCredential("qwen", cred); err != nil {
+		fmt.Printf("Failed to save credentials: %v\n", err)
+		os.Exit(1)
+	}
+
+	appCfg, cfgErr := loadConfig()
+	if cfgErr == nil {
+		// Update or add qwen-portal entry in ModelList.
+		found := false
+		for i := range appCfg.ModelList {
+			if isQwenModel(appCfg.ModelList[i].Model) {
+				appCfg.ModelList[i].Model = "qwen-portal/coder-model"
+				appCfg.ModelList[i].APIBase = "https://portal.qwen.ai/v1"
+				appCfg.ModelList[i].APIKey = "qwen-oauth"
+				appCfg.ModelList[i].AuthMethod = "oauth"
+				found = true
+				break
+			}
+		}
+		if !found {
+			appCfg.ModelList = append(appCfg.ModelList, config.ModelConfig{
+				ModelName:  "qwen-coder",
+				Model:      "qwen-portal/coder-model",
+				APIBase:    "https://portal.qwen.ai/v1",
+				APIKey:     "qwen-oauth",
+				AuthMethod: "oauth",
+			})
+		}
+
+		// Update default model.
+		appCfg.Agents.Defaults.ModelName = "qwen-coder"
+
+		if err := config.SaveConfig(getConfigPath(), appCfg); err != nil {
+			fmt.Printf("Warning: could not update config: %v\n", err)
+		}
+	}
+
+	fmt.Println("\n✓ Qwen OAuth login successful!")
+	fmt.Println("Default model set to: qwen-coder (coder-model)")
+	fmt.Println("Available models: qwen-coder, qwen-vision")
+	fmt.Println("Try it: picoclaw agent -m \"你好\" --model qwen-coder")
 }
