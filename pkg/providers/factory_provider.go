@@ -139,7 +139,7 @@ func CreateProviderFromConfig(cfg *config.ModelConfig) (LLMProvider, string, err
 	case "antigravity":
 		return NewAntigravityProvider(), modelID, nil
 
-	case "qwen-oauth", "qwenoauth":
+	case "qwen-oauth", "qwenoauth", "qwen-portal":
 		// Qwen OAuth (QR code login)
 		provider, err := createQwenOAuthProvider()
 		if err != nil {
