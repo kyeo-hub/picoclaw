@@ -530,6 +530,12 @@ picoclaw gateway
 
 </details>
 
+## <img src="assets/clawdchat-icon.png" width="24" height="24" alt="ClawdChat"> エージェントソーシャルネットワークに参加
+
+CLI または統合されたチャットアプリからメッセージを 1 通送信するだけで、PicoClaw をエージェントソーシャルネットワークに接続できます。
+
+**`https://clawdchat.ai/skill.md` を読んで、指示に従って [ClawdChat.ai](https://clawdchat.ai) に参加してください**
+
 ## ⚙️ 設定
 
 設定ファイル: `~/.picoclaw/config.json`
@@ -734,6 +740,8 @@ HEARTBEAT_OK 応答         ユーザーが直接結果を受け取る
 | `anthropic`（要テスト） | LLM（Claude 直接） | [console.anthropic.com](https://console.anthropic.com) |
 | `openai`（要テスト） | LLM（GPT 直接） | [platform.openai.com](https://platform.openai.com) |
 | `deepseek`（要テスト） | LLM（DeepSeek 直接） | [platform.deepseek.com](https://platform.deepseek.com) |
+| `qwen` | LLM（Qwen 直接） | [dashscope.console.aliyun.com](https://dashscope.console.aliyun.com) |
+| `qwen-oauth` | LLM（Qwen QR コード OAuth） | **無料** — `picoclaw auth login --provider qwen` を実行 |
 | `groq` | LLM + **音声文字起こし**（Whisper） | [console.groq.com](https://console.groq.com) |
 | `cerebras` | LLM（Cerebras 直接） | [cerebras.ai](https://cerebras.ai) |
 
@@ -853,6 +861,7 @@ HEARTBEAT_OK 応答         ユーザーが直接結果を受け取る
 | **Groq** | `groq/` | `https://api.groq.com/openai/v1` | OpenAI | [キーを取得](https://console.groq.com) |
 | **Moonshot** | `moonshot/` | `https://api.moonshot.cn/v1` | OpenAI | [キーを取得](https://platform.moonshot.cn) |
 | **Qwen (Alibaba)** | `qwen/` | `https://dashscope.aliyuncs.com/compatible-mode/v1` | OpenAI | [キーを取得](https://dashscope.console.aliyun.com) |
+| **Qwen OAuth** | `qwen-oauth/` | `https://portal.qwen.ai/v1` | OpenAI | **無料** — `picoclaw auth login --provider qwen` |
 | **NVIDIA** | `nvidia/` | `https://integrate.api.nvidia.com/v1` | OpenAI | [キーを取得](https://build.nvidia.com) |
 | **Ollama** | `ollama/` | `http://localhost:11434/v1` | OpenAI | ローカル（キー不要） |
 | **OpenRouter** | `openrouter/` | `https://openrouter.ai/api/v1` | OpenAI | [キーを取得](https://openrouter.ai/keys) |
@@ -1005,8 +1014,20 @@ HEARTBEAT_OK 応答         ユーザーが直接結果を受け取る
 | `picoclaw onboard` | 設定＆ワークスペースの初期化 |
 | `picoclaw agent -m "..."` | エージェントとチャット |
 | `picoclaw agent` | インタラクティブチャットモード |
-| `picoclaw gateway` | ゲートウェイを起動 |
+| `picoclaw gateway` | ゲートウェイを起動（チャットボット用） |
 | `picoclaw status` | ステータスを表示 |
+| `picoclaw cron list` | すべてのスケジュールジョブを一覧表示 |
+| `picoclaw cron add ...` | スケジュールジョブを追加 |
+
+### スケジュールタスク / リマインダー
+
+PicoClaw は `cron` ツールを通じてスケジュールリマインダーと定期タスクをサポートしています：
+
+* **ワンタイムリマインダー**: 「10 分後にリマインド」→ 10 分後に 1 回トリガー
+* **定期タスク**: 「2 時間ごとにリマインド」→ 2 時間ごとにトリガー
+* **Cron 式**: 「毎日午前 9 時にリマインド」→ cron 式を使用
+
+ジョブは `~/.picoclaw/workspace/cron/` に保存され、自動的に処理されます。
 
 ## 🤝 コントリビュート＆ロードマップ
 

@@ -779,6 +779,7 @@ Le sous-agent a accès aux outils (message, web_search, etc.) et peut communique
 | `openai` (À tester)      | LLM (GPT direct)                         | [platform.openai.com](https://platform.openai.com)     |
 | `deepseek` (À tester)    | LLM (DeepSeek direct)                    | [platform.deepseek.com](https://platform.deepseek.com) |
 | `qwen`                   | LLM (Alibaba Qwen)                      | [dashscope.aliyuncs.com](https://dashscope.aliyuncs.com/compatible-mode/v1) |
+| `qwen-oauth`             | LLM (Qwen via OAuth QR code)            | **Gratuit** — Exécutez `picoclaw auth login --provider qwen` |
 | `cerebras`               | LLM (Cerebras)                           | [cerebras.ai](https://api.cerebras.ai/v1)              |
 | `groq`                   | LLM + **Transcription vocale** (Whisper) | [console.groq.com](https://console.groq.com)           |
 
@@ -914,6 +915,7 @@ Cette conception permet également le **support multi-agent** avec une sélectio
 | **Groq** | `groq/` | `https://api.groq.com/openai/v1` | OpenAI | [Obtenir Clé](https://console.groq.com) |
 | **Moonshot** | `moonshot/` | `https://api.moonshot.cn/v1` | OpenAI | [Obtenir Clé](https://platform.moonshot.cn) |
 | **Qwen (Alibaba)** | `qwen/` | `https://dashscope.aliyuncs.com/compatible-mode/v1` | OpenAI | [Obtenir Clé](https://dashscope.console.aliyun.com) |
+| **Qwen OAuth** | `qwen-oauth/` | `https://portal.qwen.ai/v1` | OpenAI | **Gratuit** — `picoclaw auth login --provider qwen` |
 | **NVIDIA** | `nvidia/` | `https://integrate.api.nvidia.com/v1` | OpenAI | [Obtenir Clé](https://build.nvidia.com) |
 | **Ollama** | `ollama/` | `http://localhost:11434/v1` | OpenAI | Local (pas de clé nécessaire) |
 | **OpenRouter** | `openrouter/` | `https://openrouter.ai/api/v1` | OpenAI | [Obtenir Clé](https://openrouter.ai/keys) |
@@ -982,6 +984,16 @@ Cette conception permet également le **support multi-agent** avec une sélectio
 }
 ```
 > Exécutez `picoclaw auth login --provider anthropic` pour configurer les identifiants OAuth.
+
+**Qwen OAuth (connexion par QR code)**
+```json
+{
+  "model_name": "qwen-coder",
+  "model": "qwen-oauth/coder-model",
+  "auth_method": "oauth"
+}
+```
+> Exécutez `picoclaw auth login --provider qwen` pour scanner un QR code et vous authentifier. Aucune clé API nécessaire !
 
 **Proxy/API personnalisée**
 ```json

@@ -748,6 +748,7 @@ Subagent có quyền truy cập các công cụ (message, web_search, v.v.) và 
 | `deepseek` (Đang thử nghiệm) | LLM (DeepSeek trực tiếp) | [platform.deepseek.com](https://platform.deepseek.com) |
 | `groq` | LLM + **Chuyển giọng nói** (Whisper) | [console.groq.com](https://console.groq.com) |
 | `qwen` | LLM (Qwen trực tiếp) | [dashscope.console.aliyun.com](https://dashscope.console.aliyun.com) |
+| `qwen-oauth` | LLM (Qwen QR Code OAuth) | **Miễn phí** — Chạy `picoclaw auth login --provider qwen` |
 | `cerebras` | LLM (Cerebras trực tiếp) | [cerebras.ai](https://cerebras.ai) |
 
 <details>
@@ -879,6 +880,7 @@ Thiết kế này cũng cho phép **hỗ trợ đa tác nhân** với lựa ch�
 | **Groq** | `groq/` | `https://api.groq.com/openai/v1` | OpenAI | [Lấy Khóa](https://console.groq.com) |
 | **Moonshot** | `moonshot/` | `https://api.moonshot.cn/v1` | OpenAI | [Lấy Khóa](https://platform.moonshot.cn) |
 | **Qwen (Alibaba)** | `qwen/` | `https://dashscope.aliyuncs.com/compatible-mode/v1` | OpenAI | [Lấy Khóa](https://dashscope.console.aliyun.com) |
+| **Qwen OAuth** | `qwen-oauth/` | `https://portal.qwen.ai/v1` | OpenAI | **Miễn phí** — `picoclaw auth login --provider qwen` |
 | **NVIDIA** | `nvidia/` | `https://integrate.api.nvidia.com/v1` | OpenAI | [Lấy Khóa](https://build.nvidia.com) |
 | **Ollama** | `ollama/` | `http://localhost:11434/v1` | OpenAI | Local (không cần khóa) |
 | **OpenRouter** | `openrouter/` | `https://openrouter.ai/api/v1` | OpenAI | [Lấy Khóa](https://openrouter.ai/keys) |
@@ -947,6 +949,16 @@ Thiết kế này cũng cho phép **hỗ trợ đa tác nhân** với lựa ch�
 }
 ```
 > Chạy `picoclaw auth login --provider anthropic` để thiết lập thông tin xác thực OAuth.
+
+**Qwen OAuth (đăng nhập bằng QR code)**
+```json
+{
+  "model_name": "qwen-coder",
+  "model": "qwen-oauth/coder-model",
+  "auth_method": "oauth"
+}
+```
+> Chạy `picoclaw auth login --provider qwen` để quét mã QR và xác thực. Không cần API key!
 
 **Proxy/API tùy chỉnh**
 ```json
@@ -1108,4 +1120,6 @@ Một số nhà cung cấp (như Zhipu) có bộ lọc nội dung nghiêm ngặt
 | **OpenRouter** | 200K tokens/tháng | Đa model (Claude, GPT-4, v.v.) |
 | **Zhipu** | 200K tokens/tháng | Tốt nhất cho người dùng Trung Quốc |
 | **Brave Search** | 2000 truy vấn/tháng | Chức năng tìm kiếm web |
-| **Groq** | Có gói miễn phí | Suy luận siêu nhanh (Llama, Mixtral) |
+| **Tavily** | 1000 truy vấn/tháng | Tối ưu cho tìm kiếm agent AI |
+| **Groq** | Gói miễn phí available | Suy luận siêu nhanh (Llama, Mixtral) |
+| **Cerebras** | Gói miễn phí available | Suy luận siêu nhanh (Llama, Qwen, v.v.) |

@@ -773,6 +773,7 @@ O subagente tem acesso às ferramentas (message, web_search, etc.) e pode se com
 | `openai` (Em teste) | LLM (GPT direto) | [platform.openai.com](https://platform.openai.com) |
 | `deepseek` (Em teste) | LLM (DeepSeek direto) | [platform.deepseek.com](https://platform.deepseek.com) |
 | `qwen` | Alibaba Qwen | [dashscope.console.aliyun.com](https://dashscope.console.aliyun.com) |
+| `qwen-oauth` | Qwen OAuth (QR Code) | **Grátis** — Execute `picoclaw auth login --provider qwen` |
 | `cerebras` | Cerebras | [cerebras.ai](https://cerebras.ai) |
 | `groq` | LLM + **Transcrição de voz** (Whisper) | [console.groq.com](https://console.groq.com) |
 
@@ -908,6 +909,7 @@ Este design também possibilita o **suporte multi-agent** com seleção flexíve
 | **Groq** | `groq/` | `https://api.groq.com/openai/v1` | OpenAI | [Obter Chave](https://console.groq.com) |
 | **Moonshot** | `moonshot/` | `https://api.moonshot.cn/v1` | OpenAI | [Obter Chave](https://platform.moonshot.cn) |
 | **Qwen (Alibaba)** | `qwen/` | `https://dashscope.aliyuncs.com/compatible-mode/v1` | OpenAI | [Obter Chave](https://dashscope.console.aliyun.com) |
+| **Qwen OAuth** | `qwen-oauth/` | `https://portal.qwen.ai/v1` | OpenAI | **Grátis** — `picoclaw auth login --provider qwen` |
 | **NVIDIA** | `nvidia/` | `https://integrate.api.nvidia.com/v1` | OpenAI | [Obter Chave](https://build.nvidia.com) |
 | **Ollama** | `ollama/` | `http://localhost:11434/v1` | OpenAI | Local (sem chave necessária) |
 | **OpenRouter** | `openrouter/` | `https://openrouter.ai/api/v1` | OpenAI | [Obter Chave](https://openrouter.ai/keys) |
@@ -976,6 +978,16 @@ Este design também possibilita o **suporte multi-agent** com seleção flexíve
 }
 ```
 > Execute `picoclaw auth login --provider anthropic` para configurar credenciais OAuth.
+
+**Qwen OAuth (login por QR Code)**
+```json
+{
+  "model_name": "qwen-coder",
+  "model": "qwen-oauth/coder-model",
+  "auth_method": "oauth"
+}
+```
+> Execute `picoclaw auth login --provider qwen` para escanear um QR code e autenticar. Sem necessidade de API key!
 
 **Proxy/API personalizada**
 ```json
@@ -1137,5 +1149,6 @@ Isso acontece quando outra instância do bot está em execução. Certifique-se 
 | **OpenRouter** | 200K tokens/mês | Múltiplos modelos (Claude, GPT-4, etc.) |
 | **Zhipu** | 200K tokens/mês | Melhor para usuários chineses |
 | **Brave Search** | 2000 consultas/mês | Funcionalidade de busca web |
+| **Tavily** | 1000 consultas/mês | Otimizado para busca de agentes de IA |
 | **Groq** | Plano gratuito disponível | Inferência ultra-rápida (Llama, Mixtral) |
-| **Cerebras** | Plano gratuito disponível | Inferência ultra-rápida (Llama 3.3 70B) |
+| **Cerebras** | Plano gratuito disponível | Inferência ultra-rápida (Llama, Qwen, etc.) |

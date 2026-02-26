@@ -427,6 +427,7 @@ Agent 读取 HEARTBEAT.md
 | `openai(待测试)`     | LLM (GPT 直连)               | [platform.openai.com](https://platform.openai.com)                   |
 | `deepseek(待测试)`   | LLM (DeepSeek 直连)          | [platform.deepseek.com](https://platform.deepseek.com)               |
 | `qwen`               | LLM (通义千问)               | [dashscope.console.aliyun.com](https://dashscope.console.aliyun.com) |
+| `qwen-oauth`         | LLM (通义千问二维码登录)     | **免费** — 运行 `picoclaw auth login --provider qwen`                |
 | `groq`               | LLM + **语音转录** (Whisper) | [console.groq.com](https://console.groq.com)                         |
 | `cerebras`           | LLM (Cerebras 直连)          | [cerebras.ai](https://cerebras.ai)                                   |
 
@@ -453,6 +454,7 @@ Agent 读取 HEARTBEAT.md
 | **Groq**            | `groq/`           | `https://api.groq.com/openai/v1`                    | OpenAI    | [获取密钥](https://console.groq.com)                              |
 | **Moonshot**        | `moonshot/`       | `https://api.moonshot.cn/v1`                        | OpenAI    | [获取密钥](https://platform.moonshot.cn)                          |
 | **通义千问 (Qwen)** | `qwen/`           | `https://dashscope.aliyuncs.com/compatible-mode/v1` | OpenAI    | [获取密钥](https://dashscope.console.aliyun.com)                  |
+| **Qwen OAuth**    | `qwen-oauth/`     | `https://portal.qwen.ai/v1`                         | OpenAI    | **免费** — `picoclaw auth login --provider qwen`                 |
 | **NVIDIA**          | `nvidia/`         | `https://integrate.api.nvidia.com/v1`               | OpenAI    | [获取密钥](https://build.nvidia.com)                              |
 | **Ollama**          | `ollama/`         | `http://localhost:11434/v1`                         | OpenAI    | 本地（无需密钥）                                                  |
 | **OpenRouter**      | `openrouter/`     | `https://openrouter.ai/api/v1`                      | OpenAI    | [获取密钥](https://openrouter.ai/keys)                            |
@@ -535,6 +537,18 @@ Agent 读取 HEARTBEAT.md
 ```
 
 > 运行 `picoclaw auth login --provider anthropic` 来设置 OAuth 凭证。
+
+**Qwen OAuth (二维码登录)**
+
+```json
+{
+  "model_name": "qwen-coder",
+  "model": "qwen-oauth/coder-model",
+  "auth_method": "oauth"
+}
+```
+
+> 运行 `picoclaw auth login --provider qwen` 扫描二维码认证，无需 API 密钥！
 
 **Ollama (本地)**
 
@@ -756,6 +770,148 @@ PicoClaw 通过 `cron` 工具支持定时提醒和重复任务：
 
 任务存储在 `~/.picoclaw/workspace/cron/` 中并自动处理。
 
+### 负载均衡 (Load Balancing)
+
+为同一模型名称配置多个端点，PicoClaw 会自动在这些端点之间进行轮询：
+
+```json
+{
+  "model_list": [
+    {
+      "model_name": "gpt-5.2",
+      "model": "openai/gpt-5.2",
+      "api_base": "https://api1.example.com/v1",
+      "api_key": "sk-key1"
+    },
+    {
+      "model_name": "gpt-5.2",
+      "model": "openai/gpt-5.2",
+      "api_base": "https://api2.example.com/v1",
+      "api_key": "sk-key2"
+    }
+  ]
+}
+```
+
+### 提供商架构 (Provider Architecture)
+
+PicoClaw 根据协议族路由提供商：
+
+- **OpenAI 兼容协议**: OpenRouter、OpenAI 兼容网关、Groq、智谱和 vLLM 风格的端点
+- **Anthropic 协议**: Claude 原生 API 行为
+- **Codex/OAuth 路径**: OpenAI OAuth/令牌认证路由
+
+这使得运行时保持轻量，同时让新的 OpenAI 兼容后端主要通过配置操作（`api_base` + `api_key`）即可接入。
+
+<details>
+<summary><b>智谱 (Zhipu) 配置示例</b></summary>
+
+**1. 获取 API Key 和 Base URL**
+
+* 获取 [API Key](https://bigmodel.cn/usercenter/proj-mgmt/apikeys)
+
+**2. 配置**
+
+```json
+{
+  "agents": {
+    "defaults": {
+      "workspace": "~/.picoclaw/workspace",
+      "model": "glm-4.7",
+      "max_tokens": 8192,
+      "temperature": 0.7,
+      "max_tool_iterations": 20
+    }
+  },
+  "providers": {
+    "zhipu": {
+      "api_key": "您的 API Key",
+      "api_base": "https://open.bigmodel.cn/api/paas/v4"
+    }
+  }
+}
+```
+
+**3. 运行**
+
+```bash
+picoclaw agent -m "你好"
+```
+
+</details>
+
+<details>
+<summary><b>完整配置示例</b></summary>
+
+```json
+{
+  "agents": {
+    "defaults": {
+      "model": "anthropic/claude-opus-4-5"
+    }
+  },
+  "providers": {
+    "openrouter": {
+      "api_key": "sk-or-v1-xxx"
+    },
+    "groq": {
+      "api_key": "gsk_xxx"
+    }
+  },
+  "channels": {
+    "telegram": {
+      "enabled": true,
+      "token": "123456:ABC...",
+      "allow_from": ["123456789"]
+    },
+    "discord": {
+      "enabled": true,
+      "token": "",
+      "allow_from": [""]
+    },
+    "whatsapp": {
+      "enabled": false
+    },
+    "feishu": {
+      "enabled": false,
+      "app_id": "cli_xxx",
+      "app_secret": "xxx",
+      "encrypt_key": "",
+      "verification_token": "",
+      "allow_from": []
+    },
+    "qq": {
+      "enabled": false,
+      "app_id": "",
+      "app_secret": "",
+      "allow_from": []
+    }
+  },
+  "tools": {
+    "web": {
+      "brave": {
+        "enabled": false,
+        "api_key": "YOUR_BRAVE_API_KEY",
+        "max_results": 5
+      },
+      "duckduckgo": {
+        "enabled": true,
+        "max_results": 5
+      }
+    },
+    "cron": {
+      "exec_timeout_minutes": 5
+    }
+  },
+  "heartbeat": {
+    "enabled": true,
+    "interval": 30
+  }
+}
+```
+
+</details>
+
 ## 🤝 贡献与路线图 (Roadmap)
 
 欢迎提交 PR！代码库刻意保持小巧和可读。🤗
@@ -818,3 +974,4 @@ Discord: [https://discord.gg/V4sAZ9XWpN](https://discord.gg/V4sAZ9XWpN)
 | **Brave Search** | 2000 次查询/月 | 网络搜索功能 |
 | **Tavily** | 1000 次查询/月 | AI Agent 搜索优化 |
 | **Groq** | 提供免费层级 | 极速推理 (Llama, Mixtral) |
+| **Cerebras** | 提供免费层级 | 极速推理 (Llama, Qwen 等) |

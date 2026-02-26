@@ -792,6 +792,7 @@ The subagent has access to tools (message, web_search, etc.) and can communicate
 | `openai(To be tested)`     | LLM (GPT direct)                        | [platform.openai.com](https://platform.openai.com)                   |
 | `deepseek(To be tested)`   | LLM (DeepSeek direct)                   | [platform.deepseek.com](https://platform.deepseek.com)               |
 | `qwen`                     | LLM (Qwen direct)                       | [dashscope.console.aliyun.com](https://dashscope.console.aliyun.com) |
+| `qwen-oauth`               | LLM (Qwen via QR code OAuth)            | **Free** — Run `picoclaw auth login --provider qwen`                 |
 | `groq`                     | LLM + **Voice transcription** (Whisper) | [console.groq.com](https://console.groq.com)                         |
 | `cerebras`                 | LLM (Cerebras direct)                   | [cerebras.ai](https://cerebras.ai)                                   |
 
@@ -818,6 +819,7 @@ This design also enables **multi-agent support** with flexible provider selectio
 | **Groq**            | `groq/`           | `https://api.groq.com/openai/v1`                    | OpenAI    | [Get Key](https://console.groq.com)                              |
 | **Moonshot**        | `moonshot/`       | `https://api.moonshot.cn/v1`                        | OpenAI    | [Get Key](https://platform.moonshot.cn)                          |
 | **通义千问 (Qwen)** | `qwen/`           | `https://dashscope.aliyuncs.com/compatible-mode/v1` | OpenAI    | [Get Key](https://dashscope.console.aliyun.com)                  |
+| **Qwen OAuth**    | `qwen-oauth/`     | `https://portal.qwen.ai/v1`                         | OpenAI    | **Free** — `picoclaw auth login --provider qwen`                 |
 | **NVIDIA**          | `nvidia/`         | `https://integrate.api.nvidia.com/v1`               | OpenAI    | [Get Key](https://build.nvidia.com)                              |
 | **Ollama**          | `ollama/`         | `http://localhost:11434/v1`                         | OpenAI    | Local (no key needed)                                            |
 | **OpenRouter**      | `openrouter/`     | `https://openrouter.ai/api/v1`                      | OpenAI    | [Get Key](https://openrouter.ai/keys)                            |
@@ -889,17 +891,29 @@ This design also enables **multi-agent support** with flexible provider selectio
 }
 ```
 
-**Anthropic (with API key)**
+**Anthropic (with OAuth)**
 
 ```json
 {
   "model_name": "claude-sonnet-4.6",
   "model": "anthropic/claude-sonnet-4.6",
-  "api_key": "sk-ant-your-key"
+  "auth_method": "oauth"
 }
 ```
 
-> Run `picoclaw auth login --provider anthropic` to paste your API token.
+> Run `picoclaw auth login --provider anthropic` to set up OAuth credentials.
+
+**Qwen OAuth (QR code login)**
+
+```json
+{
+  "model_name": "qwen-coder",
+  "model": "qwen-oauth/coder-model",
+  "auth_method": "oauth"
+}
+```
+
+> Run `picoclaw auth login --provider qwen` to scan a QR code and authenticate. No API key needed!
 
 **Ollama (local)**
 
