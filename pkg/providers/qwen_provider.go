@@ -134,7 +134,7 @@ func (p *QwenOAuthProvider) Chat(
 	return p.parseResponse(body)
 }
 
-// buildRequestBody serialises the chat request as an OpenAI-compatible JSON body.
+// buildRequestBody serializes the chat request as an OpenAI-compatible JSON body.
 func (p *QwenOAuthProvider) buildRequestBody(
 	messages []Message,
 	tools []ToolDefinition,

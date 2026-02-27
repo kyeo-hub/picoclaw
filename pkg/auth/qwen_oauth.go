@@ -25,9 +25,6 @@ const (
 	qwenClientID        = "f0304373b74a44d2b584a3fb70ca9e56"
 	qwenOAuthScope      = "openid profile email model.completion"
 	qwenDeviceGrantType = "urn:ietf:params:oauth:grant-type:device_code"
-	// Qwen Portal API base URL (OpenAI-compatible endpoint)
-	// This is the same endpoint used by OpenClaw
-	qwenPortalBaseURL = "https://portal.qwen.ai/v1"
 )
 
 // qwenDeviceAuthorization is returned by the device/code endpoint.
@@ -176,6 +173,7 @@ func pollQwenToken(deviceCode, verifier string, interval, expiresIn int) (*qwenT
 // until the token is granted.
 func LoginQwenQRCode() (*AuthCredential, error) {
 	fmt.Println()
+	//nolint:gosmopolitan // intentional Chinese characters for user-facing message
 	fmt.Println("=== Qwen (通义千问) OAuth Login ===")
 	fmt.Println()
 
@@ -227,7 +225,7 @@ func LoginQwenQRCode() (*AuthCredential, error) {
 
 	// 5. Build credential
 	expiresAt := time.Now().Add(time.Duration(tok.ExpiresIn) * time.Second)
-	
+
 	cred := &AuthCredential{
 		AccessToken:  tok.AccessToken,
 		RefreshToken: tok.RefreshToken,

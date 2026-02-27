@@ -499,6 +499,7 @@ func authLoginQwen() error {
 	fmt.Println("\n✓ Qwen OAuth login successful!")
 	fmt.Println("Default model set to: qwen-coder (coder-model)")
 	fmt.Println("Available models: qwen-coder, qwen-vision")
+	//nolint:gosmopolitan // intentional Chinese character for user-facing message
 	fmt.Println("Try it: picoclaw agent -m \"你好\" --model qwen-coder")
 
 	return nil
