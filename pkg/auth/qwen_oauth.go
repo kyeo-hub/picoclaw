@@ -18,14 +18,24 @@ import (
 // Qwen Portal OAuth constants (extracted from openclaw/openclaw extensions/qwen-portal-auth).
 // Reference: https://github.com/openclaw/openclaw/tree/main/extensions/qwen-portal-auth
 const (
-	qwenOAuthBaseURL       = "https://chat.qwen.ai"
-	qwenDeviceCodeEndpoint = qwenOAuthBaseURL + "/api/v1/oauth2/device/code"
-	qwenTokenEndpoint      = qwenOAuthBaseURL + "/api/v1/oauth2/token"
-	// Client ID from OpenClaw qwen-portal-auth extension
-	qwenClientID        = "f0304373b74a44d2b584a3fb70ca9e56"
-	qwenOAuthScope      = "openid profile email model.completion"
-	qwenDeviceGrantType = "urn:ietf:params:oauth:grant-type:device_code"
+	qwenOAuthBaseURL      = "https://chat.qwen.ai"
+	qwenClientID          = "f0304373b74a44d2b584a3fb70ca9e56"
+	qwenOAuthScope        = "openid profile email model.completion"
+	qwenDeviceGrantType   = "urn:ietf:params:oauth:grant-type:device_code"
 )
+
+// qwenEndpointFuncs holds customizable endpoint functions for testing.
+var (
+	qwenDeviceCodeEndpointFunc = func() string { return qwenOAuthBaseURL + "/api/v1/oauth2/device/code" }
+	qwenTokenEndpointFunc      = func() string { return qwenOAuthBaseURL + "/api/v1/oauth2/token" }
+)
+
+// SetQwenTestEndpoints sets custom endpoints for testing.
+// This function is exported for testing purposes only.
+func SetQwenTestEndpoints(deviceCodeURL, tokenURL string) {
+	qwenDeviceCodeEndpointFunc = func() string { return deviceCodeURL }
+	qwenTokenEndpointFunc = func() string { return tokenURL }
+}
 
 // qwenDeviceAuthorization is returned by the device/code endpoint.
 type qwenDeviceAuthorization struct {
@@ -71,7 +81,7 @@ func requestQwenDeviceCode(challenge string) (*qwenDeviceAuthorization, error) {
 	body.Set("code_challenge", challenge)
 	body.Set("code_challenge_method", "S256")
 
-	req, err := http.NewRequest("POST", qwenDeviceCodeEndpoint, strings.NewReader(body.Encode()))
+	req, err := http.NewRequest("POST", qwenDeviceCodeEndpointFunc(), strings.NewReader(body.Encode()))
 	if err != nil {
 		return nil, err
 	}
@@ -119,7 +129,7 @@ func pollQwenToken(deviceCode, verifier string, interval, expiresIn int) (*qwenT
 	for time.Now().Before(deadline) {
 		time.Sleep(pollInterval)
 
-		req, err := http.NewRequest("POST", qwenTokenEndpoint, strings.NewReader(body.Encode()))
+		req, err := http.NewRequest("POST", qwenTokenEndpointFunc(), strings.NewReader(body.Encode()))
 		if err != nil {
 			return nil, err
 		}
@@ -247,7 +257,7 @@ func RefreshQwenCredentials(cred *AuthCredential) (*AuthCredential, error) {
 	body.Set("refresh_token", cred.RefreshToken)
 	body.Set("client_id", qwenClientID)
 
-	req, err := http.NewRequest("POST", qwenTokenEndpoint, strings.NewReader(body.Encode()))
+	req, err := http.NewRequest("POST", qwenTokenEndpointFunc(), strings.NewReader(body.Encode()))
 	if err != nil {
 		return nil, err
 	}
